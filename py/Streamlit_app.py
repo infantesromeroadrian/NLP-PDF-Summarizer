@@ -1,57 +1,77 @@
 import streamlit as st
+import os
 from PDFDownloader import PDFDownloader
 from PDFLoader import PDFLoader
 from DocumentSplitter import DocumentSplitter
 from DocumentEmbedder import DocumentEmbedder
 from QAChain import QAChain
 
+# Configuración inicial: establecer la clave API de OpenAI desde st.secrets
+os.environ["OPENAI_API_KEY"] = st.secrets["openai_api_key"]
+
 # Título de la aplicación
 st.title("PDF Document Processor and Query Answering System")
 
-# Entrada de URLs de documentos PDF
-st.header("PDF Downloader")
-urls = st.text_area("Enter PDF URLs (one per line)").split("\n")
-if st.button("Download PDFs"):
-    if urls:
-        downloader = PDFDownloader(urls)
-        ml_papers = downloader.download()
-        st.success(f"Downloaded {len(ml_papers)} documents.")
-    else:
-        st.error("Please enter at least one URL.")
+# Sección para cargar archivos PDF directamente
+st.header("Upload PDF Files")
+uploaded_files = st.file_uploader("Choose PDF files", accept_multiple_files=True, type=['pdf'])
 
-# Procesamiento de documentos
-if 'ml_papers' in locals():
-    st.header("Process Documents")
-    if st.button("Load and Process Documents"):
-        # Cargar documentos
-        loader = PDFLoader(ml_papers)
-        documents = loader.load()
+# Sección para ingresar URLs de documentos PDF
+st.header("Enter PDF URLs")
+urls = st.text_area("Or enter PDF URLs (one per line)").split("\n")
 
-        # Dividir documentos
-        splitter = DocumentSplitter(documents)
-        documents = splitter.split()
+# Directorio para guardar archivos cargados
+upload_dir = 'uploaded_files'
+if not os.path.exists(upload_dir):
+    os.makedirs(upload_dir)
 
-        # Crear embeddings de documentos
-        embedder = DocumentEmbedder(documents)
-        retriever = embedder.embed()
+# Procesar los documentos cargados y descargados
+if st.button("Process Documents"):
+    ml_papers = []
 
-        st.success("Documents processed successfully.")
+    # Descargar archivos de URLs
+    if urls and urls[0]:
+        try:
+            downloader = PDFDownloader(urls)
+            url_papers = downloader.download()
+            ml_papers.extend(url_papers)
+            st.success(f"Downloaded {len(url_papers)} documents from URLs.")
+        except Exception as e:
+            st.error(f"Error during download from URLs: {e}")
+
+    # Guardar archivos cargados
+    for uploaded_file in uploaded_files:
+        file_path = os.path.join(upload_dir, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        ml_papers.append(file_path)
+        st.success(f"Uploaded {len(uploaded_files)} documents.")
+
+    # Procesar documentos
+    if ml_papers:
+        try:
+            loader = PDFLoader(ml_papers)
+            documents = loader.load()
+
+            splitter = DocumentSplitter(documents)
+            documents = splitter.split()
+
+            embedder = DocumentEmbedder(documents, os.environ["OPENAI_API_KEY"])
+            retriever = embedder.embed()
+
+            st.session_state.retriever = retriever
+            st.success("Documents processed successfully.")
+        except Exception as e:
+            st.error(f"Error during processing: {e}")
 
 # Consulta y respuesta
-if 'retriever' in locals():
+if 'retriever' in st.session_state and st.session_state.retriever:
     st.header("Query Answering System")
     question = st.text_input("Enter your question")
     if st.button("Get Answer"):
-        chain = QAChain(retriever)
-        answer = chain.query(question)
-        st.write(answer)
-
-# Instrucciones para ejecutar
-st.sidebar.header("Instructions")
-st.sidebar.write("""
-1. Enter the URLs of the PDF documents in the text area.
-2. Click 'Download PDFs' to download the documents.
-3. Click 'Load and Process Documents' to process the downloaded documents.
-4. Enter your question in the text input under 'Query Answering System'.
-5. Click 'Get Answer' to receive a response based on the processed documents.
-""")
+        try:
+            chain = QAChain(st.session_state.retriever, os.environ["OPENAI_API_KEY"])
+            answer = chain.query(question)
+            st.write(answer)
+        except Exception as e:
+            st.error(f"Error during query: {e}")

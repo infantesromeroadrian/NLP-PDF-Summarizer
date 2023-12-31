@@ -11,6 +11,5 @@ class PDFDownloader:
             filename = f"paper{i+1}.pdf"
             with open(filename, 'wb') as f:
                 f.write(response.content)
-                print(f"Descargado {filename}")
             ml_papers.append(filename)
         return ml_papers
