@@ -1,6 +1,7 @@
 
 from langchain.document_loaders import PyPDFLoader
 
+
 class PDFLoader:
     def __init__(self, filenames):
         self.filenames = filenames

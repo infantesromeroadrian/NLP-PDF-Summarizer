@@ -2,9 +2,10 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 
 class DocumentEmbedder:
-    def __init__(self, documents, openai_api_key):
+    def __init__(self, documents):
         self.documents = documents
-        self.embeddings = OpenAIEmbeddings(model="text-embedding-ada-002", openai_api_key=openai_api_key)
+        self.model = "text-embedding-ada-002"
+        self.embeddings = OpenAIEmbeddings(model=self.model)
 
     def embed(self):
         vectorstore = Chroma.from_documents(
