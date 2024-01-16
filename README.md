@@ -1,4 +1,4 @@
-📚 PDF Document Processing and Query Answering Project 🚀
+# 📚 PDF Document Processing and Query Answering Project 🚀
 Description 📝
 This project 🏗️ facilitates the downloading, loading, processing, and querying of PDF documents 📄. It employs a series of Python 🐍 scripts and a Streamlit application 🌐 to provide an interactive user interface. The key functionalities include downloading PDF documents from URLs 🌍, loading these documents into memory 💾, processing them into manageable segments, creating text embeddings of these segments, and finally performing queries and obtaining answers based on the documents' content. We're utilizing LangChain 🛠️, a Python library, to enhance our interaction with OpenAI language models and other NLP-related tasks.
 
